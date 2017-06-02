@@ -1,4 +1,5 @@
-CXX=g++
+#CXX=g++
+CXX=clang++-3.8
 RM=rm -f
 CPPFLAGS= -o0 -g
 LDFLAGS=
@@ -13,6 +14,10 @@ perimeter: perimeter.cpp
 movie: movie.cpp
 bill : bill.cpp
 guess : guess.cpp
+defaultParam : defaultParam.cpp
+selectionSort : selectionSort.cpp
+
+
 
 $(TARGETS):
 	$(CXX) $(CPPFLAGS) -o $@  $^
