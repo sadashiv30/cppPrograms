@@ -1,5 +1,5 @@
-#CXX=g++
-CXX=clang++-3.8
+CXX=g++
+#CXX=clang++-3.8
 RM=rm -f
 CPPFLAGS= -o0 -g
 LDFLAGS=
@@ -16,6 +16,8 @@ bill : bill.cpp
 guess : guess.cpp
 defaultParam : defaultParam.cpp
 selectionSort : selectionSort.cpp
+circle :circle.cpp
+cashregister :cashregister.cpp
 
 
 
