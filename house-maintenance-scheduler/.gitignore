@@ -1,3 +1,4 @@
 src/*.o
 house-scheduler
 data/*.dat
+data-demo/
