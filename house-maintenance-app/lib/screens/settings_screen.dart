@@ -121,7 +121,7 @@ class SettingsScreen extends ConsumerWidget {
                 title: Text('Clear all data',
                     style: TextStyle(color: cs.error)),
                 subtitle: const Text('Permanently delete everything'),
-                onTap: () => _confirmClear(context),
+                onTap: () => _confirmClear(context, ref),
               ),
             ]),
           ),
@@ -164,12 +164,12 @@ class SettingsScreen extends ConsumerWidget {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: AppTheme.light().colorScheme.primaryContainer,
+                  color: cs.primaryContainer,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(Icons.home_work_outlined,
                     size: 36,
-                    color: AppTheme.light().colorScheme.onPrimaryContainer),
+                    color: cs.onPrimaryContainer),
               ),
               const SizedBox(height: 8),
               Text('Your home, always maintained.',
@@ -182,7 +182,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmClear(BuildContext context) async {
+  Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -207,6 +207,10 @@ class SettingsScreen extends ConsumerWidget {
       await db.delete('maintenance_tasks');
       await db.delete('home_features');
       await db.delete('appliances');
+      ref.invalidate(appliancesProvider);
+      ref.invalidate(featuresProvider);
+      ref.invalidate(tasksProvider);
+      ref.invalidate(dashboardProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

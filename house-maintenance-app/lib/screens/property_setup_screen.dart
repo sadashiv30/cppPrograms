@@ -25,9 +25,12 @@ class _PropertySetupScreenState extends ConsumerState<PropertySetupScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill if a profile already exists
-    final existing = ref.read(homeProfileProvider).value;
-    if (existing != null) _addressCtrl.text = existing.fullAddress;
+    // Pre-fill once the async provider resolves (may still be loading at initState time)
+    ref.read(homeProfileProvider.future).then((existing) {
+      if (existing != null && mounted) {
+        _addressCtrl.text = existing.fullAddress;
+      }
+    });
   }
 
   @override
@@ -298,6 +301,7 @@ class _PropertySetupScreenState extends ConsumerState<PropertySetupScreen> {
         ],
       ),
     );
+    ctrl.dispose();
   }
 }
 

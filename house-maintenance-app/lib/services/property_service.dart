@@ -75,9 +75,16 @@ class PropertyService {
       coolingType: features['cooling'] as String?,
       roofType: features['roofType'] as String?,
       foundationType: features['foundationType'] as String?,
-      hasPool: features['pool'] as bool?,
+      hasPool: _parseBool(features['pool']),
       parkingType: features['parkingType'] as String?,
     );
+  }
+
+  static bool? _parseBool(dynamic v) {
+    if (v == null) return null;
+    if (v is bool) return v;
+    if (v is int) return v != 0;
+    return null;
   }
 }
 

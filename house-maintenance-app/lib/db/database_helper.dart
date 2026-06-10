@@ -306,15 +306,22 @@ class DatabaseHelper {
     final db = await database;
     final now = DateTime.now();
     final firstOfMonth = DateTime(now.year, now.month, 1).toIso8601String().substring(0, 10);
-    final today = _today();
+    final lastOfMonth = DateTime(now.year, now.month + 1, 0).toIso8601String().substring(0, 10);
 
     final completed = await db.rawQuery(
-      'SELECT COUNT(*) as c FROM task_completions WHERE completed_date >= ?',
-      [firstOfMonth],
+      'SELECT COUNT(*) as c FROM task_completions WHERE completed_date >= ? AND completed_date <= ?',
+      [firstOfMonth, lastOfMonth],
     );
+    // Total = tasks completed this month + tasks due this month not yet done
     final total = await db.rawQuery(
-      "SELECT COUNT(*) as c FROM maintenance_tasks WHERE (next_due >= ? AND next_due <= ?) OR completed=1",
-      [firstOfMonth, today],
+      '''SELECT COUNT(*) as c FROM (
+           SELECT task_id as id FROM task_completions
+           WHERE completed_date >= ? AND completed_date <= ?
+           UNION
+           SELECT id FROM maintenance_tasks
+           WHERE next_due >= ? AND next_due <= ? AND completed = 0
+         )''',
+      [firstOfMonth, lastOfMonth, firstOfMonth, lastOfMonth],
     );
 
     return {
@@ -326,19 +333,27 @@ class DatabaseHelper {
   Future<List<double>> getMonthlySpend() async {
     final db = await database;
     final now = DateTime.now();
-    final List<double> result = [];
+    final from = DateTime(now.year, now.month - 5, 1).toIso8601String().substring(0, 10);
 
-    for (int i = 5; i >= 0; i--) {
-      final dt = DateTime(now.year, now.month - i, 1);
-      final from = DateTime(dt.year, dt.month, 1).toIso8601String().substring(0, 10);
-      final to   = DateTime(dt.year, dt.month + 1, 0).toIso8601String().substring(0, 10);
-      final rows = await db.rawQuery(
-        'SELECT COALESCE(SUM(cost),0) as s FROM task_completions WHERE completed_date >= ? AND completed_date <= ?',
-        [from, to],
-      );
-      result.add((rows.first['s'] as num?)?.toDouble() ?? 0.0);
+    final rows = await db.rawQuery(
+      '''SELECT strftime('%Y-%m', completed_date) as month, COALESCE(SUM(cost), 0) as s
+         FROM task_completions
+         WHERE completed_date >= ?
+         GROUP BY month
+         ORDER BY month ASC''',
+      [from],
+    );
+
+    final spendByMonth = <String, double>{};
+    for (final row in rows) {
+      spendByMonth[row['month'] as String] = (row['s'] as num).toDouble();
     }
-    return result;
+
+    return List.generate(6, (i) {
+      final dt = DateTime(now.year, now.month - 5 + i, 1);
+      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+      return spendByMonth[key] ?? 0.0;
+    });
   }
 
   // ── Home Profile ────────────────────────────────────────────────────────────

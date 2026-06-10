@@ -6,7 +6,7 @@ import '../models/maintenance_task.dart';
 import '../theme/app_theme.dart';
 import '../providers/providers.dart';
 
-class TaskTile extends ConsumerWidget {
+class TaskTile extends ConsumerStatefulWidget {
   final MaintenanceTask task;
   final String itemName;
   final VoidCallback? onTap;
@@ -18,10 +18,24 @@ class TaskTile extends ConsumerWidget {
     this.onTap,
   });
 
-  Future<void> _complete(BuildContext context, WidgetRef ref) async {
-    double cost = 0;
-    final costCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
+  @override
+  ConsumerState<TaskTile> createState() => _TaskTileState();
+}
+
+class _TaskTileState extends ConsumerState<TaskTile> {
+  final _costCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _costCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _complete(BuildContext context) async {
+    _costCtrl.clear();
+    _noteCtrl.clear();
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -29,10 +43,10 @@ class TaskTile extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Padding(
+      builder: (sheetCtx) => Padding(
         padding: EdgeInsets.only(
           left: 24, right: 24, top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -41,13 +55,13 @@ class TaskTile extends ConsumerWidget {
             Row(children: [
               const Icon(Icons.check_circle, color: Colors.green),
               const SizedBox(width: 8),
-              Text('Mark Complete', style: Theme.of(context).textTheme.titleLarge),
+              Text('Mark Complete', style: Theme.of(sheetCtx).textTheme.titleLarge),
             ]),
             const SizedBox(height: 4),
-            Text(task.title, style: Theme.of(context).textTheme.bodyMedium),
+            Text(widget.task.title, style: Theme.of(sheetCtx).textTheme.bodyMedium),
             const SizedBox(height: 20),
             TextField(
-              controller: costCtrl,
+              controller: _costCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 labelText: 'Cost (optional)',
@@ -56,24 +70,21 @@ class TaskTile extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: noteCtrl,
+              controller: _noteCtrl,
               decoration: const InputDecoration(labelText: 'Notes (optional)'),
             ),
             const SizedBox(height: 20),
             Row(children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, false),
+                  onPressed: () => Navigator.pop(sheetCtx, false),
                   child: const Text('Cancel'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () {
-                    cost = double.tryParse(costCtrl.text) ?? 0;
-                    Navigator.pop(context, true);
-                  },
+                  onPressed: () => Navigator.pop(sheetCtx, true),
                   child: const Text('Done'),
                 ),
               ),
@@ -85,20 +96,20 @@ class TaskTile extends ConsumerWidget {
 
     if (confirmed == true && context.mounted) {
       await ref.read(tasksProvider.notifier).complete(
-        task,
+        widget.task,
         DateTime.now(),
-        cost: cost,
-        notes: noteCtrl.text.trim(),
+        cost: double.tryParse(_costCtrl.text) ?? 0,
+        notes: _noteCtrl.text.trim(),
       );
     }
   }
 
-  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+  Future<void> _delete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete Task'),
-        content: Text('Delete "${task.title}"?'),
+        content: Text('Delete "${widget.task.title}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(
@@ -109,36 +120,36 @@ class TaskTile extends ConsumerWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      await ref.read(tasksProvider.notifier).delete(task.id!);
+      await ref.read(tasksProvider.notifier).delete(widget.task.id!);
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final priColor = AppTheme.priorityColor(task.priority);
-    final isOverdue = task.isOverdue;
+  Widget build(BuildContext context) {
+    final priColor = AppTheme.priorityColor(widget.task.priority);
+    final isOverdue = widget.task.isOverdue;
     final cs = Theme.of(context).colorScheme;
 
     String dueDateLabel = '—';
-    if (task.nextDue.isNotEmpty) {
+    if (widget.task.nextDue.isNotEmpty) {
       try {
-        final due = DateTime.parse(task.nextDue);
+        final due = DateTime.parse(widget.task.nextDue);
         dueDateLabel = DateFormat('MMM d, y').format(due);
       } catch (_) {
-        dueDateLabel = task.nextDue;
+        dueDateLabel = widget.task.nextDue;
       }
     }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Slidable(
-        key: ValueKey(task.id),
+        key: ValueKey(widget.task.id),
         startActionPane: ActionPane(
           motion: const BehindMotion(),
           extentRatio: 0.25,
           children: [
             SlidableAction(
-              onPressed: (ctx) => task.completed ? null : _complete(ctx, ref),
+              onPressed: (ctx) => widget.task.completed ? null : _complete(ctx),
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
               icon: Icons.check_circle_outline,
@@ -152,7 +163,7 @@ class TaskTile extends ConsumerWidget {
           extentRatio: 0.25,
           children: [
             SlidableAction(
-              onPressed: (ctx) => _delete(ctx, ref),
+              onPressed: (ctx) => _delete(ctx),
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               icon: Icons.delete_outline,
@@ -163,7 +174,7 @@ class TaskTile extends ConsumerWidget {
         ),
         child: Card(
           child: InkWell(
-            onTap: onTap,
+            onTap: widget.onTap,
             borderRadius: BorderRadius.circular(16),
             child: IntrinsicHeight(
               child: Row(
@@ -184,10 +195,10 @@ class TaskTile extends ConsumerWidget {
                           Row(children: [
                             Expanded(
                               child: Text(
-                                task.title,
+                                widget.task.title,
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  decoration: task.completed ? TextDecoration.lineThrough : null,
-                                  color: task.completed ? cs.onSurface.withOpacity(0.5) : null,
+                                  decoration: widget.task.completed ? TextDecoration.lineThrough : null,
+                                  color: widget.task.completed ? cs.onSurface.withOpacity(0.5) : null,
                                 ),
                               ),
                             ),
@@ -207,7 +218,7 @@ class TaskTile extends ConsumerWidget {
                               ),
                           ]),
                           const SizedBox(height: 4),
-                          Text(itemName,
+                          Text(widget.itemName,
                               style: Theme.of(context).textTheme.bodyMedium),
                           const SizedBox(height: 8),
                           Row(children: [
@@ -235,14 +246,14 @@ class TaskTile extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                AppTheme.priorityLabel(task.priority),
+                                AppTheme.priorityLabel(widget.task.priority),
                                 style: TextStyle(fontSize: 11, color: priColor, fontWeight: FontWeight.w600),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            if (task.frequencyDays > 0)
+                            if (widget.task.frequencyDays > 0)
                               Text(
-                                'Every ${task.frequencyDays}d',
+                                'Every ${widget.task.frequencyDays}d',
                                 style: Theme.of(context).textTheme.labelSmall,
                               )
                             else

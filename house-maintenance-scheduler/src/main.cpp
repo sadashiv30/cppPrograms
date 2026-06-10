@@ -3,6 +3,19 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
+
+// Returns an ISO date string offset by `days` from today (negative = past).
+static std::string dateOffset(int days) {
+    std::time_t now = std::time(nullptr);
+    now += static_cast<std::time_t>(days) * 86400;
+    struct tm* t = std::localtime(&now);
+    std::ostringstream oss;
+    oss << std::put_time(t, "%Y-%m-%d");
+    return oss.str();
+}
 
 static void seedDemo(Scheduler& sched) {
     // Appliances  {id, name, brand, model, serial, location, install_date, warranty_expiry, notes}
@@ -21,21 +34,21 @@ static void seedDemo(Scheduler& sched) {
     sched.addFeature({0, "Landscaping", "Irrigation System", "Yard",     "2017-05-01", "2025-10-15", "6 zones, winterized each fall"});
 
     // Tasks  {id, title, item_type, item_id, freq_days, last_done, next_due, priority, completed, notes}
-    // Overdue (before 2026-06-07)
-    sched.addTask({0, "Replace HVAC Filter",      "Feature",   1, 90,  "", "2026-05-01", 1, false, "MERV-13, 20x25x1 inch"});
-    sched.addTask({0, "Inspect Roof for Damage",  "Feature",   3, 365, "", "2026-04-15", 2, false, "Check flashing & gutters too"});
-    sched.addTask({0, "Clean Dishwasher Filter",  "Appliance", 4, 30,  "", "2026-05-25", 2, false, "Rinse under warm water"});
+    // Overdue (past due)
+    sched.addTask({0, "Replace HVAC Filter",      "Feature",   1, 90,  "", dateOffset(-36), 1, false, "MERV-13, 20x25x1 inch"});
+    sched.addTask({0, "Inspect Roof for Damage",  "Feature",   3, 365, "", dateOffset(-56), 2, false, "Check flashing & gutters too"});
+    sched.addTask({0, "Clean Dishwasher Filter",  "Appliance", 4, 30,  "", dateOffset(-7),  2, false, "Rinse under warm water"});
 
-    // Upcoming within 30 days (2026-06-07 to 2026-07-07)
-    sched.addTask({0, "Check Smoke Detectors",    "Feature",   4, 365, "", "2026-06-20", 1, false, "Test all 5 detectors, replace batteries"});
-    sched.addTask({0, "Clean Dryer Vent",         "Appliance", 3, 365, "", "2026-06-25", 2, false, "Use lint brush kit, check exterior vent cap"});
-    sched.addTask({0, "Run Washer Cleaning Cycle","Appliance", 2, 30,  "", "2026-07-01", 3, false, "Use affresh tablet"});
+    // Upcoming within 30 days
+    sched.addTask({0, "Check Smoke Detectors",    "Feature",   4, 365, "", dateOffset(13),  1, false, "Test all 5 detectors, replace batteries"});
+    sched.addTask({0, "Clean Dryer Vent",         "Appliance", 3, 365, "", dateOffset(18),  2, false, "Use lint brush kit, check exterior vent cap"});
+    sched.addTask({0, "Run Washer Cleaning Cycle","Appliance", 2, 30,  "", dateOffset(25),  3, false, "Use affresh tablet"});
 
     // Future
-    sched.addTask({0, "Flush Water Heater",       "Appliance", 5, 365, "", "2026-08-20", 2, false, "Drain sediment, check anode rod"});
-    sched.addTask({0, "Service AC Unit",          "Feature",   1, 365, "", "2026-09-01", 1, false, "Annual professional service"});
-    sched.addTask({0, "Winterize Irrigation",     "Feature",   5, 365, "", "2026-10-15", 2, false, "Blow out lines before first frost"});
-    sched.addTask({0, "Check Electrical Panel",   "Feature",   4, 730, "", "2027-03-15", 3, false, "Look for breakers that trip frequently"});
+    sched.addTask({0, "Flush Water Heater",        "Appliance", 5, 365, "", dateOffset(71),  2, false, "Drain sediment, check anode rod"});
+    sched.addTask({0, "Service AC Unit",           "Feature",   1, 365, "", dateOffset(83),  1, false, "Annual professional service"});
+    sched.addTask({0, "Winterize Irrigation",      "Feature",   5, 365, "", dateOffset(127), 2, false, "Blow out lines before first frost"});
+    sched.addTask({0, "Check Electrical Panel",    "Feature",   4, 730, "", dateOffset(280), 3, false, "Look for breakers that trip frequently"});
 
     sched.save();
     std::cout << "  Demo data loaded: 6 appliances, 5 features, 10 tasks.\n";
