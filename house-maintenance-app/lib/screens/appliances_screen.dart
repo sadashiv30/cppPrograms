@@ -295,7 +295,7 @@ class _ApplianceFormScreenState extends ConsumerState<ApplianceFormScreen> {
     if (a.id == null) {
       await ref.read(appliancesProvider.notifier).add(a);
     } else {
-      await ref.read(appliancesProvider.notifier).update(a);
+      await ref.read(appliancesProvider.notifier).edit(a);
     }
     if (mounted) Navigator.pop(context);
   }

@@ -292,7 +292,7 @@ class _FeatureFormScreenState extends ConsumerState<FeatureFormScreen> {
     if (f.id == null) {
       await ref.read(featuresProvider.notifier).add(f);
     } else {
-      await ref.read(featuresProvider.notifier).update(f);
+      await ref.read(featuresProvider.notifier).edit(f);
     }
     if (mounted) Navigator.pop(context);
   }

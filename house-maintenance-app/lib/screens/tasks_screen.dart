@@ -446,7 +446,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     if (t.id == null) {
       await ref.read(tasksProvider.notifier).add(t);
     } else {
-      await ref.read(tasksProvider.notifier).update(t);
+      await ref.read(tasksProvider.notifier).edit(t);
     }
     if (mounted) Navigator.pop(context);
   }

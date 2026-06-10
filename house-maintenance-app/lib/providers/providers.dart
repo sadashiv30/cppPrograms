@@ -110,7 +110,7 @@ class ApplianceNotifier extends AsyncNotifier<List<Appliance>> {
     ref.invalidateSelf();
   }
 
-  Future<void> update(Appliance a) async {
+  Future<void> edit(Appliance a) async {
     await DatabaseHelper.instance.updateAppliance(a);
     ref.invalidateSelf();
   }
@@ -135,7 +135,7 @@ class FeatureNotifier extends AsyncNotifier<List<HomeFeature>> {
     ref.invalidateSelf();
   }
 
-  Future<void> update(HomeFeature f) async {
+  Future<void> edit(HomeFeature f) async {
     await DatabaseHelper.instance.updateFeature(f);
     ref.invalidateSelf();
   }
@@ -161,7 +161,7 @@ class TaskNotifier extends AsyncNotifier<List<MaintenanceTask>> {
     ref.invalidate(dashboardProvider);
   }
 
-  Future<void> update(MaintenanceTask t) async {
+  Future<void> edit(MaintenanceTask t) async {
     await DatabaseHelper.instance.updateTask(t);
     ref.invalidateSelf();
     ref.invalidate(dashboardProvider);
