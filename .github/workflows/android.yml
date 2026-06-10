@@ -1,0 +1,41 @@
+name: Android APK
+
+on:
+  push:
+    branches: [claude/house-maintenance-scheduler-kJPyy, main]
+    paths:
+      - 'house-maintenance-app/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.x'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        working-directory: house-maintenance-app
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: house-maintenance-app
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: house-maintenance-apk
+          path: house-maintenance-app/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30
