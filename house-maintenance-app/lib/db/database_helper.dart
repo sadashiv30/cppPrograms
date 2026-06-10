@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import '../models/appliance.dart';
 import '../models/home_feature.dart';
 import '../models/maintenance_task.dart';
+import '../models/task_completion.dart';
 
 class DatabaseHelper {
   static DatabaseHelper? _instance;
@@ -18,11 +19,25 @@ class DatabaseHelper {
 
   Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'house_maintenance.db');
-    return openDatabase(path, version: 1, onCreate: _onCreate);
+    final path = join(dbPath, 'house_maintenance_v2.db');
+    return openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    await _createV1(db);
+    if (version >= 2) await _createV2(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) await _createV2(db);
+  }
+
+  Future<void> _createV1(Database db) async {
     await db.execute('''
       CREATE TABLE appliances (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,7 +51,6 @@ class DatabaseHelper {
         notes TEXT
       )
     ''');
-
     await db.execute('''
       CREATE TABLE home_features (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +62,6 @@ class DatabaseHelper {
         notes TEXT
       )
     ''');
-
     await db.execute('''
       CREATE TABLE maintenance_tasks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +78,20 @@ class DatabaseHelper {
     ''');
   }
 
-  // ── Appliances ──────────────────────────────────────────────
+  Future<void> _createV2(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS task_completions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL,
+        completed_date TEXT NOT NULL,
+        cost REAL DEFAULT 0.0,
+        notes TEXT,
+        FOREIGN KEY (task_id) REFERENCES maintenance_tasks(id) ON DELETE CASCADE
+      )
+    ''');
+  }
+
+  // ── Appliances ──────────────────────────────────────────────────────────────
 
   Future<List<Appliance>> getAppliances() async {
     final db = await database;
@@ -94,7 +120,7 @@ class DatabaseHelper {
     await db.delete('appliances', where: 'id = ?', whereArgs: [id]);
   }
 
-  // ── Home Features ────────────────────────────────────────────
+  // ── Home Features ───────────────────────────────────────────────────────────
 
   Future<List<HomeFeature>> getFeatures() async {
     final db = await database;
@@ -123,20 +149,20 @@ class DatabaseHelper {
     await db.delete('home_features', where: 'id = ?', whereArgs: [id]);
   }
 
-  // ── Maintenance Tasks ────────────────────────────────────────
+  // ── Maintenance Tasks ───────────────────────────────────────────────────────
 
   Future<List<MaintenanceTask>> getTasks() async {
     final db = await database;
-    final rows = await db.query('maintenance_tasks', orderBy: 'next_due ASC');
+    final rows = await db.query('maintenance_tasks', orderBy: 'next_due ASC, priority ASC');
     return rows.map(MaintenanceTask.fromMap).toList();
   }
 
   Future<List<MaintenanceTask>> getOverdueTasks() async {
     final db = await database;
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today = _today();
     final rows = await db.query(
       'maintenance_tasks',
-      where: 'completed = 0 AND next_due != "" AND next_due < ?',
+      where: "completed = 0 AND next_due != '' AND next_due < ?",
       whereArgs: [today],
       orderBy: 'priority ASC, next_due ASC',
     );
@@ -145,11 +171,11 @@ class DatabaseHelper {
 
   Future<List<MaintenanceTask>> getUpcomingTasks(int days) async {
     final db = await database;
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today = _today();
     final limit = DateTime.now().add(Duration(days: days)).toIso8601String().substring(0, 10);
     final rows = await db.query(
       'maintenance_tasks',
-      where: 'completed = 0 AND next_due != "" AND next_due >= ? AND next_due <= ?',
+      where: "completed = 0 AND next_due != '' AND next_due >= ? AND next_due <= ?",
       whereArgs: [today, limit],
       orderBy: 'next_due ASC',
     );
@@ -166,44 +192,128 @@ class DatabaseHelper {
     await db.update('maintenance_tasks', t.toMap(), where: 'id = ?', whereArgs: [t.id]);
   }
 
-  Future<void> completeTask(MaintenanceTask t, DateTime doneDate) async {
+  Future<void> completeTask(MaintenanceTask t, DateTime doneDate,
+      {double cost = 0, String notes = ''}) async {
+    final db = await database;
     final done = doneDate.toIso8601String().substring(0, 10);
+
+    // Record in history
+    await db.insert('task_completions', TaskCompletion(
+      taskId: t.id!,
+      completedDate: done,
+      cost: cost,
+      notes: notes,
+    ).toMap());
+
+    // Update task
     MaintenanceTask updated;
     if (t.frequencyDays > 0) {
-      final nextDue = doneDate.add(Duration(days: t.frequencyDays))
-          .toIso8601String().substring(0, 10);
+      final nextDue = doneDate
+          .add(Duration(days: t.frequencyDays))
+          .toIso8601String()
+          .substring(0, 10);
       updated = t.copyWith(lastDone: done, nextDue: nextDue, completed: false);
     } else {
       updated = t.copyWith(lastDone: done, completed: true);
     }
-    await updateTask(updated);
+    await db.update('maintenance_tasks', updated.toMap(),
+        where: 'id = ?', whereArgs: [t.id]);
   }
 
   Future<void> deleteTask(int id) async {
     final db = await database;
+    await db.delete('task_completions', where: 'task_id = ?', whereArgs: [id]);
     await db.delete('maintenance_tasks', where: 'id = ?', whereArgs: [id]);
   }
 
-  // ── Dashboard stats ──────────────────────────────────────────
+  // ── Task Completions (History) ──────────────────────────────────────────────
+
+  Future<List<TaskCompletion>> getCompletionsForTask(int taskId) async {
+    final db = await database;
+    final rows = await db.query(
+      'task_completions',
+      where: 'task_id = ?',
+      whereArgs: [taskId],
+      orderBy: 'completed_date DESC',
+    );
+    return rows.map(TaskCompletion.fromMap).toList();
+  }
+
+  Future<List<TaskCompletion>> getRecentCompletions({int limit = 20}) async {
+    final db = await database;
+    final rows = await db.query(
+      'task_completions',
+      orderBy: 'completed_date DESC',
+      limit: limit,
+    );
+    return rows.map(TaskCompletion.fromMap).toList();
+  }
+
+  // ── Dashboard Stats ─────────────────────────────────────────────────────────
 
   Future<Map<String, int>> getStats() async {
     final db = await database;
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today = _today();
     final limit = DateTime.now().add(const Duration(days: 30))
         .toIso8601String().substring(0, 10);
 
-    final counts = await Future.wait([
+    final results = await Future.wait([
       db.rawQuery('SELECT COUNT(*) as c FROM appliances'),
       db.rawQuery('SELECT COUNT(*) as c FROM home_features'),
-      db.rawQuery("SELECT COUNT(*) as c FROM maintenance_tasks WHERE completed = 0 AND next_due != '' AND next_due < ?", [today]),
-      db.rawQuery("SELECT COUNT(*) as c FROM maintenance_tasks WHERE completed = 0 AND next_due != '' AND next_due >= ? AND next_due <= ?", [today, limit]),
+      db.rawQuery(
+          "SELECT COUNT(*) as c FROM maintenance_tasks WHERE completed=0 AND next_due!='' AND next_due<?",
+          [today]),
+      db.rawQuery(
+          "SELECT COUNT(*) as c FROM maintenance_tasks WHERE completed=0 AND next_due!='' AND next_due>=? AND next_due<=?",
+          [today, limit]),
     ]);
 
     return {
-      'appliances': counts[0].first['c'] as int,
-      'features': counts[1].first['c'] as int,
-      'overdue': counts[2].first['c'] as int,
-      'upcoming': counts[3].first['c'] as int,
+      'appliances': results[0].first['c'] as int,
+      'features':   results[1].first['c'] as int,
+      'overdue':    results[2].first['c'] as int,
+      'upcoming':   results[3].first['c'] as int,
     };
   }
+
+  Future<Map<String, int>> getMonthlyStats() async {
+    final db = await database;
+    final now = DateTime.now();
+    final firstOfMonth = DateTime(now.year, now.month, 1).toIso8601String().substring(0, 10);
+    final today = _today();
+
+    final completed = await db.rawQuery(
+      'SELECT COUNT(*) as c FROM task_completions WHERE completed_date >= ?',
+      [firstOfMonth],
+    );
+    final total = await db.rawQuery(
+      "SELECT COUNT(*) as c FROM maintenance_tasks WHERE (next_due >= ? AND next_due <= ?) OR completed=1",
+      [firstOfMonth, today],
+    );
+
+    return {
+      'completed': completed.first['c'] as int,
+      'total': total.first['c'] as int,
+    };
+  }
+
+  Future<List<double>> getMonthlySpend() async {
+    final db = await database;
+    final now = DateTime.now();
+    final List<double> result = [];
+
+    for (int i = 5; i >= 0; i--) {
+      final dt = DateTime(now.year, now.month - i, 1);
+      final from = DateTime(dt.year, dt.month, 1).toIso8601String().substring(0, 10);
+      final to   = DateTime(dt.year, dt.month + 1, 0).toIso8601String().substring(0, 10);
+      final rows = await db.rawQuery(
+        'SELECT COALESCE(SUM(cost),0) as s FROM task_completions WHERE completed_date >= ? AND completed_date <= ?',
+        [from, to],
+      );
+      result.add((rows.first['s'] as num?)?.toDouble() ?? 0.0);
+    }
+    return result;
+  }
+
+  static String _today() => DateTime.now().toIso8601String().substring(0, 10);
 }
