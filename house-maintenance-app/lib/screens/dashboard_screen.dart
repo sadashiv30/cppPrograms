@@ -434,7 +434,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Container(width: 3, height: 18, color: color,
+      Container(width: 3, height: 18,
           decoration: BoxDecoration(
               color: color, borderRadius: BorderRadius.circular(2))),
       const SizedBox(width: 10),
