@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
 import '../theme/app_theme.dart';
 import '../db/database_helper.dart';
+import 'property_setup_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -44,6 +45,37 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+            ]),
+          ),
+
+          // ── Home Profile ──────────────────────────────────────
+          _SectionHeader('Home Profile'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Column(children: [
+              Consumer(builder: (context, ref, _) {
+                final profile = ref.watch(homeProfileProvider).value;
+                return ListTile(
+                  leading: const Icon(Icons.home_work_outlined),
+                  title: Text(profile != null ? profile.address : 'No property set'),
+                  subtitle: Text(
+                    profile != null
+                        ? [
+                            if (profile.yearBuilt != null) 'Built ${profile.yearBuilt}',
+                            if (profile.bedrooms != null) '${profile.bedrooms} bed',
+                            if (profile.sqft != null)
+                              '${profile.sqft!.toStringAsFixed(0)} sq ft',
+                          ].join(' · ')
+                        : 'Tap to look up your property details',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PropertySetupScreen()),
+                  ),
+                );
+              }),
             ]),
           ),
 

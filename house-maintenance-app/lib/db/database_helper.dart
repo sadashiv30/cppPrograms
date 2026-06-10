@@ -4,6 +4,7 @@ import '../models/appliance.dart';
 import '../models/home_feature.dart';
 import '../models/maintenance_task.dart';
 import '../models/task_completion.dart';
+import '../models/home_profile.dart';
 
 class DatabaseHelper {
   static DatabaseHelper? _instance;
@@ -22,7 +23,7 @@ class DatabaseHelper {
     final path = join(dbPath, 'house_maintenance_v2.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -30,11 +31,13 @@ class DatabaseHelper {
 
   Future<void> _onCreate(Database db, int version) async {
     await _createV1(db);
-    if (version >= 2) await _createV2(db);
+    await _createV2(db);
+    await _createV3(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) await _createV2(db);
+    if (oldVersion < 3) await _createV3(db);
   }
 
   Future<void> _createV1(Database db) async {
@@ -87,6 +90,29 @@ class DatabaseHelper {
         cost REAL DEFAULT 0.0,
         notes TEXT,
         FOREIGN KEY (task_id) REFERENCES maintenance_tasks(id) ON DELETE CASCADE
+      )
+    ''');
+  }
+
+  Future<void> _createV3(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS home_profile (
+        id INTEGER PRIMARY KEY,
+        address TEXT NOT NULL,
+        city TEXT,
+        state TEXT,
+        zip TEXT,
+        year_built INTEGER,
+        bedrooms INTEGER,
+        bathrooms REAL,
+        sqft REAL,
+        property_type TEXT,
+        heating_type TEXT,
+        cooling_type TEXT,
+        roof_type TEXT,
+        foundation_type TEXT,
+        has_pool INTEGER,
+        parking_type TEXT
       )
     ''');
   }
@@ -313,6 +339,30 @@ class DatabaseHelper {
       result.add((rows.first['s'] as num?)?.toDouble() ?? 0.0);
     }
     return result;
+  }
+
+  // ── Home Profile ────────────────────────────────────────────────────────────
+
+  Future<HomeProfile?> getHomeProfile() async {
+    final db = await database;
+    final rows = await db.query('home_profile', limit: 1);
+    return rows.isEmpty ? null : HomeProfile.fromMap(rows.first);
+  }
+
+  Future<void> saveHomeProfile(HomeProfile p) async {
+    final db = await database;
+    final existing = await db.query('home_profile', limit: 1);
+    if (existing.isEmpty) {
+      await db.insert('home_profile', p.copyWith(id: 1).toMap());
+    } else {
+      await db.update('home_profile', p.copyWith(id: 1).toMap(),
+          where: 'id = ?', whereArgs: [1]);
+    }
+  }
+
+  Future<void> deleteHomeProfile() async {
+    final db = await database;
+    await db.delete('home_profile');
   }
 
   static String _today() => DateTime.now().toIso8601String().substring(0, 10);

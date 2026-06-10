@@ -8,6 +8,8 @@ import '../models/appliance.dart';
 import '../models/home_feature.dart';
 import '../models/maintenance_task.dart';
 import '../widgets/task_tile.dart';
+import '../models/home_profile.dart';
+import 'property_setup_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -34,9 +36,10 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dashAsync  = ref.watch(dashboardProvider);
-    final appliances = ref.watch(appliancesProvider).value ?? [];
-    final features   = ref.watch(featuresProvider).value ?? [];
+    final dashAsync   = ref.watch(dashboardProvider);
+    final appliances  = ref.watch(appliancesProvider).value ?? [];
+    final features    = ref.watch(featuresProvider).value ?? [];
+    final homeProfile = ref.watch(homeProfileProvider).value;
     final cs = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
@@ -57,6 +60,7 @@ class DashboardScreen extends ConsumerWidget {
                       greeting: _greeting(),
                       overdueCount: d.overdueCount,
                       upcomingCount: d.upcomingCount,
+                      profile: homeProfile,
                     ),
                     const SizedBox(height: 20),
 
@@ -154,11 +158,13 @@ class _GreetingCard extends StatelessWidget {
   final String greeting;
   final int overdueCount;
   final int upcomingCount;
+  final HomeProfile? profile;
 
   const _GreetingCard({
     required this.greeting,
     required this.overdueCount,
     required this.upcomingCount,
+    this.profile,
   });
 
   @override
@@ -191,6 +197,31 @@ class _GreetingCard extends StatelessWidget {
           Text(today,
               style:
                   TextStyle(fontSize: 13, color: cs.onPrimary.withOpacity(0.7))),
+          if (profile != null) ...[
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.location_on_outlined,
+                  size: 12, color: cs.onPrimary.withOpacity(0.7)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  profile!.address,
+                  style: TextStyle(fontSize: 12, color: cs.onPrimary.withOpacity(0.7)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (profile!.bedrooms != null) ...[
+                const SizedBox(width: 8),
+                Text('${profile!.bedrooms} bd',
+                    style: TextStyle(fontSize: 12, color: cs.onPrimary.withOpacity(0.7))),
+              ],
+              if (profile!.sqft != null) ...[
+                const SizedBox(width: 8),
+                Text('${profile!.sqft!.toStringAsFixed(0)} sqft',
+                    style: TextStyle(fontSize: 12, color: cs.onPrimary.withOpacity(0.7))),
+              ],
+            ]),
+          ],
           if (overdueCount > 0) ...[
             const SizedBox(height: 12),
             Container(

@@ -6,6 +6,7 @@ import '../models/appliance.dart';
 import '../models/home_feature.dart';
 import '../models/maintenance_task.dart';
 import '../models/task_completion.dart';
+import '../models/home_profile.dart';
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,48 @@ class BoolPref extends StateNotifier<bool> {
     state = !state;
     final p = await SharedPreferences.getInstance();
     await p.setBool(_key, state);
+  }
+}
+
+// ── API Key (Rentcast) ────────────────────────────────────────────────────────
+
+final rentcastApiKeyProvider = StateNotifierProvider<StringPref, String>(
+  (_) => StringPref('rentcast_api_key'),
+);
+
+class StringPref extends StateNotifier<String> {
+  final String _key;
+  StringPref(this._key) : super('') {
+    _load();
+  }
+  Future<void> _load() async {
+    final p = await SharedPreferences.getInstance();
+    state = p.getString(_key) ?? '';
+  }
+  Future<void> set(String value) async {
+    state = value;
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_key, value);
+  }
+}
+
+// ── Home Profile ──────────────────────────────────────────────────────────────
+
+final homeProfileProvider =
+    AsyncNotifierProvider<HomeProfileNotifier, HomeProfile?>(HomeProfileNotifier.new);
+
+class HomeProfileNotifier extends AsyncNotifier<HomeProfile?> {
+  @override
+  Future<HomeProfile?> build() => DatabaseHelper.instance.getHomeProfile();
+
+  Future<void> save(HomeProfile p) async {
+    await DatabaseHelper.instance.saveHomeProfile(p);
+    ref.invalidateSelf();
+  }
+
+  Future<void> delete() async {
+    await DatabaseHelper.instance.deleteHomeProfile();
+    ref.invalidateSelf();
   }
 }
 
