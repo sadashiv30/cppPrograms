@@ -37,9 +37,13 @@ jobs:
         working-directory: house-maintenance-app
         run: flutter build apk --debug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: house-maintenance-apk
-          path: house-maintenance-app/build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 30
+      - name: Publish APK as release
+        run: |
+          gh release delete foyer-latest --yes 2>/dev/null || true
+          gh release create foyer-latest \
+            --title "Foyer – Latest Build" \
+            --notes "Tap **foyer.apk** below to download and install on Android." \
+            --prerelease \
+            "house-maintenance-app/build/app/outputs/flutter-apk/app-debug.apk#foyer.apk"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
