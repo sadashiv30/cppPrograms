@@ -1,5 +1,5 @@
-name: house_maintenance
-description: House Maintenance Scheduler & Planner — on-device, works offline.
+name: foyer
+description: Foyer — home maintenance scheduler & planner, on-device, works offline.
 publish_to: 'none'
 version: 2.0.0+1
 

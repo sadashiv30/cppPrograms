@@ -29,6 +29,10 @@ jobs:
         working-directory: house-maintenance-app
         run: flutter pub get
 
+      - name: Generate platform directories
+        working-directory: house-maintenance-app
+        run: flutter create --project-name foyer --org com.foyer --platforms android .
+
       - name: Build APK
         working-directory: house-maintenance-app
         run: flutter build apk --debug

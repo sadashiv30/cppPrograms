@@ -17,19 +17,19 @@ void main() async {
   final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
 
   runApp(ProviderScope(
-    child: HouseMaintenanceApp(showOnboarding: !onboardingDone),
+    child: FoyerApp(showOnboarding: !onboardingDone),
   ));
 }
 
-class HouseMaintenanceApp extends ConsumerWidget {
+class FoyerApp extends ConsumerWidget {
   final bool showOnboarding;
-  const HouseMaintenanceApp({super.key, required this.showOnboarding});
+  const FoyerApp({super.key, required this.showOnboarding});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
-      title: 'House Maintenance',
+      title: 'Foyer',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

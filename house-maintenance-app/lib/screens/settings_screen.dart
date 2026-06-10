@@ -133,7 +133,7 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(children: [
               ListTile(
                 leading: const Icon(Icons.home_work_outlined),
-                title: const Text('House Maintenance'),
+                title: const Text('Foyer'),
                 subtitle: const Text('Version 2.0.0'),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
@@ -148,7 +148,7 @@ class SettingsScreen extends ConsumerWidget {
                 title: const Text('Open source licenses'),
                 onTap: () => showLicensePage(
                   context: context,
-                  applicationName: 'House Maintenance',
+                  applicationName: 'Foyer',
                   applicationVersion: '2.0.0',
                 ),
               ),
