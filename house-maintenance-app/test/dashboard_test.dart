@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foyer/models/maintenance_task.dart';
 import 'package:foyer/providers/providers.dart';
 import 'package:foyer/screens/dashboard_screen.dart';
 import 'package:foyer/theme/app_theme.dart';
@@ -26,8 +29,14 @@ DashboardData _overdueDashboard() => const DashboardData(
       upcomingCount: 1,
       completedThisMonth: 2,
       totalThisMonth: 5,
-      overdueTasks: [],
-      upcomingTasks: [],
+      overdueTasks: [
+        MaintenanceTask(id: 1, title: 'Fix leak', itemType: 'appliance', itemId: 1),
+        MaintenanceTask(id: 2, title: 'Replace filter', itemType: 'appliance', itemId: 2),
+        MaintenanceTask(id: 3, title: 'Check roof', itemType: 'feature', itemId: 1),
+      ],
+      upcomingTasks: [
+        MaintenanceTask(id: 4, title: 'Service AC', itemType: 'appliance', itemId: 3),
+      ],
       monthlySpend: [0, 10, 0, 50, 20, 5],
     );
 
@@ -85,13 +94,12 @@ void main() {
   group('DashboardScreen', () {
     testWidgets('renders loading spinner while dashboard is loading',
         (tester) async {
+      // Use Completer (no timer) so the test framework doesn't complain about
+      // pending timers after disposal — Future.delayed() would leave one.
       await tester.pumpWidget(
         _wrap(
           const DashboardScreen(),
-          dashboardProvider.overrideWith((_) async {
-            await Future<void>.delayed(const Duration(seconds: 10));
-            return _emptyDashboard();
-          }),
+          dashboardProvider.overrideWith((_) => Completer<DashboardData>().future),
         ),
       );
       await tester.pump(); // first frame — still loading
@@ -107,8 +115,6 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      // Should not throw — the fix for the Container color+decoration crash
-      // is what makes this pass.
       expect(tester.takeException(), isNull);
     });
 
@@ -165,9 +171,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
-      // The overdue section header must be visible
+      // The overdue section header must be visible (3 tasks in overdueTasks list)
       expect(find.text('Overdue (3)'), findsOneWidget);
-      // Next-30-days section header is always present
+      // Next-30-days section header (1 task in upcomingTasks list)
       expect(find.text('Next 30 Days (1)'), findsOneWidget);
     });
   });
