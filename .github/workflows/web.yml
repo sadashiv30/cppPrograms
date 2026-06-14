@@ -35,15 +35,15 @@ jobs:
 
       - name: Generate drift code
         working-directory: house-maintenance-app
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Install drift WASM web bindings
-        working-directory: house-maintenance-app
-        run: dart run drift_dev web-bindings install
+        run: dart run build_runner build
 
       - name: Generate web platform files
         working-directory: house-maintenance-app
         run: flutter create --project-name foyer --org com.foyer --platforms web .
+
+      - name: Copy sqlite3.wasm for web SQLite support
+        working-directory: house-maintenance-app
+        run: find "$PUB_CACHE" -name "sqlite3.wasm" | head -1 | xargs -I{} cp {} web/sqlite3.wasm
 
       - name: Build web release
         working-directory: house-maintenance-app
