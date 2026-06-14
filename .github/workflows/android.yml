@@ -1,0 +1,57 @@
+name: Android APK
+
+on:
+  push:
+    branches: [claude/house-maintenance-scheduler-kJPyy, main]
+    paths:
+      - 'house-maintenance-app/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.x'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        working-directory: house-maintenance-app
+        run: flutter pub get
+
+      - name: Generate drift code
+        working-directory: house-maintenance-app
+        run: dart run build_runner build
+
+      - name: Run tests
+        working-directory: house-maintenance-app
+        run: flutter test --reporter=compact
+
+      - name: Generate platform directories
+        working-directory: house-maintenance-app
+        run: flutter create --project-name foyer --org com.foyer --platforms android .
+
+      - name: Build APK
+        working-directory: house-maintenance-app
+        run: flutter build apk --debug
+
+      - name: Publish APK as release
+        run: |
+          gh release delete foyer-latest --yes 2>/dev/null || true
+          gh release create foyer-latest \
+            --title "Foyer – Latest Build" \
+            --notes "Tap **foyer.apk** below to download and install on Android." \
+            --prerelease \
+            "house-maintenance-app/build/app/outputs/flutter-apk/app-debug.apk#foyer.apk"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

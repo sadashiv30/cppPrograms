@@ -1,0 +1,68 @@
+name: Web PWA
+
+on:
+  push:
+    branches: [claude/house-maintenance-scheduler-kJPyy, main]
+    paths:
+      - 'house-maintenance-app/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.x'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        working-directory: house-maintenance-app
+        run: flutter pub get
+
+      - name: Generate drift code
+        working-directory: house-maintenance-app
+        run: dart run build_runner build
+
+      - name: Generate web platform files
+        working-directory: house-maintenance-app
+        run: flutter create --project-name foyer --org com.foyer --platforms web .
+
+      - name: Copy sqlite3.wasm for web SQLite support
+        working-directory: house-maintenance-app
+        run: find "$PUB_CACHE" -name "sqlite3.wasm" | head -1 | xargs -I{} cp {} web/sqlite3.wasm
+
+      - name: Build web release
+        working-directory: house-maintenance-app
+        run: flutter build web --release --base-href /cppPrograms/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: house-maintenance-app/build/web
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

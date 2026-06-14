@@ -1,0 +1,30 @@
+name: foyer
+description: Foyer — home maintenance scheduler & planner, on-device, works offline.
+publish_to: 'none'
+version: 2.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  flutter_slidable: ^3.1.0
+  fl_chart: ^0.68.0
+  shared_preferences: ^2.3.2
+  drift: ^2.20.0
+  drift_flutter: ^0.2.0
+  sqlite3_flutter_libs: ^0.5.0
+  intl: ^0.19.0
+  http: ^1.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.0
+  drift_dev: ^2.20.0
+
+flutter:
+  uses-material-design: true
