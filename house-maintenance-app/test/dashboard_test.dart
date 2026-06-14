@@ -3,12 +3,32 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foyer/models/appliance.dart';
+import 'package:foyer/models/home_feature.dart';
+import 'package:foyer/models/home_profile.dart';
 import 'package:foyer/models/maintenance_task.dart';
 import 'package:foyer/providers/providers.dart';
 import 'package:foyer/screens/dashboard_screen.dart';
 import 'package:foyer/theme/app_theme.dart';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Fake notifiers (no DB access) ────────────────────────────────────────────
+
+class _FakeApplianceNotifier extends AsyncNotifier<List<Appliance>> {
+  @override
+  Future<List<Appliance>> build() async => [];
+}
+
+class _FakeFeatureNotifier extends AsyncNotifier<List<HomeFeature>> {
+  @override
+  Future<List<HomeFeature>> build() async => [];
+}
+
+class _FakeHomeProfileNotifier extends AsyncNotifier<HomeProfile?> {
+  @override
+  Future<HomeProfile?> build() async => null;
+}
+
+// ── Test data helpers ─────────────────────────────────────────────────────────
 
 DashboardData _emptyDashboard() => const DashboardData(
       applianceCount: 0,
@@ -40,8 +60,17 @@ DashboardData _overdueDashboard() => const DashboardData(
       monthlySpend: [0, 10, 0, 50, 20, 5],
     );
 
-Widget _wrap(Widget child, Override override) => ProviderScope(
-      overrides: [override],
+// ── Widget wrapper ────────────────────────────────────────────────────────────
+
+// Overrides all DB-backed providers so no real AppDatabase is opened and no
+// timers are created by driftDatabase() during tests.
+Widget _wrap(Widget child, Override dashboardOverride) => ProviderScope(
+      overrides: [
+        dashboardOverride,
+        appliancesProvider.overrideWith(_FakeApplianceNotifier.new),
+        featuresProvider.overrideWith(_FakeFeatureNotifier.new),
+        homeProfileProvider.overrideWith(_FakeHomeProfileNotifier.new),
+      ],
       child: MaterialApp(
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
@@ -94,15 +123,14 @@ void main() {
   group('DashboardScreen', () {
     testWidgets('renders loading spinner while dashboard is loading',
         (tester) async {
-      // Use Completer (no timer) so the test framework doesn't complain about
-      // pending timers after disposal — Future.delayed() would leave one.
+      // Completer avoids any timer — Future.delayed() would leave one pending.
       await tester.pumpWidget(
         _wrap(
           const DashboardScreen(),
           dashboardProvider.overrideWith((_) => Completer<DashboardData>().future),
         ),
       );
-      await tester.pump(); // first frame — still loading
+      await tester.pump();
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
@@ -128,9 +156,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      // Stat row is present
       expect(find.text('Overdue'), findsOneWidget);
-      expect(find.text('3'), findsWidgets); // count shown in stat chip
+      expect(find.text('3'), findsWidgets);
     });
 
     testWidgets('shows all-clear message when upcoming tasks list is empty',
@@ -160,8 +187,6 @@ void main() {
     testWidgets(
         'Container accent bar uses only decoration — no color+decoration conflict',
         (tester) async {
-      // If the Container in _SectionHeader still had both color: and
-      // decoration:, this pump would throw a FlutterError assertion.
       await tester.pumpWidget(
         _wrap(
           const DashboardScreen(),
@@ -170,10 +195,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-
-      // The overdue section header must be visible (3 tasks in overdueTasks list)
+      // Section headers visible only when the task lists are non-empty
       expect(find.text('Overdue (3)'), findsOneWidget);
-      // Next-30-days section header (1 task in upcomingTasks list)
       expect(find.text('Next 30 Days (1)'), findsOneWidget);
     });
   });
