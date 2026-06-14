@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'app_database.dart';
+import 'app_database.dart' show AppDatabase;
 import '../models/appliance.dart';
 import '../models/home_feature.dart';
 import '../models/maintenance_task.dart';
@@ -367,17 +367,17 @@ class DatabaseHelper {
           Variable<String>(p.city),
           Variable<String>(p.state),
           Variable<String>(p.zip),
-          Variable<int?>(p.yearBuilt),
-          Variable<int?>(p.bedrooms),
-          Variable<double?>(p.bathrooms),
-          Variable<double?>(p.sqft),
-          Variable<String?>(p.propertyType),
-          Variable<String?>(p.heatingType),
-          Variable<String?>(p.coolingType),
-          Variable<String?>(p.roofType),
-          Variable<String?>(p.foundationType),
-          Variable<int?>(hasPool),
-          Variable<String?>(p.parkingType),
+          Variable<int>(p.yearBuilt),
+          Variable<int>(p.bedrooms),
+          Variable<double>(p.bathrooms),
+          Variable<double>(p.sqft),
+          Variable<String>(p.propertyType),
+          Variable<String>(p.heatingType),
+          Variable<String>(p.coolingType),
+          Variable<String>(p.roofType),
+          Variable<String>(p.foundationType),
+          Variable<int>(hasPool),
+          Variable<String>(p.parkingType),
         ],
       );
     } else {
@@ -391,17 +391,17 @@ class DatabaseHelper {
           Variable<String>(p.city),
           Variable<String>(p.state),
           Variable<String>(p.zip),
-          Variable<int?>(p.yearBuilt),
-          Variable<int?>(p.bedrooms),
-          Variable<double?>(p.bathrooms),
-          Variable<double?>(p.sqft),
-          Variable<String?>(p.propertyType),
-          Variable<String?>(p.heatingType),
-          Variable<String?>(p.coolingType),
-          Variable<String?>(p.roofType),
-          Variable<String?>(p.foundationType),
-          Variable<int?>(hasPool),
-          Variable<String?>(p.parkingType),
+          Variable<int>(p.yearBuilt),
+          Variable<int>(p.bedrooms),
+          Variable<double>(p.bathrooms),
+          Variable<double>(p.sqft),
+          Variable<String>(p.propertyType),
+          Variable<String>(p.heatingType),
+          Variable<String>(p.coolingType),
+          Variable<String>(p.roofType),
+          Variable<String>(p.foundationType),
+          Variable<int>(hasPool),
+          Variable<String>(p.parkingType),
         ],
       );
     }
