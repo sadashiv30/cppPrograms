@@ -1,5 +1,6 @@
 # Flutter/Dart
 .dart_tool/
+lib/db/app_database.g.dart
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages

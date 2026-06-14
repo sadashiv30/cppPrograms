@@ -29,6 +29,10 @@ jobs:
         working-directory: house-maintenance-app
         run: flutter pub get
 
+      - name: Generate drift code
+        working-directory: house-maintenance-app
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: Run tests
         working-directory: house-maintenance-app
         run: flutter test --reporter=compact

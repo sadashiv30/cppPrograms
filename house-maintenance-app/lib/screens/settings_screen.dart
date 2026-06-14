@@ -202,11 +202,7 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      final db = await DatabaseHelper.instance.database;
-      await db.delete('task_completions');
-      await db.delete('maintenance_tasks');
-      await db.delete('home_features');
-      await db.delete('appliances');
+      await DatabaseHelper.instance.clearAllData();
       ref.invalidate(appliancesProvider);
       ref.invalidate(featuresProvider);
       ref.invalidate(tasksProvider);
