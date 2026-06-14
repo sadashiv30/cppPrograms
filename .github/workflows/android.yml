@@ -2,7 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches: [claude/house-maintenance-scheduler-kJPyy, main]
+    branches: [master]
     paths:
       - 'house-maintenance-app/**'
   workflow_dispatch:

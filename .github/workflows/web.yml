@@ -2,7 +2,7 @@ name: Web PWA
 
 on:
   push:
-    branches: [claude/house-maintenance-scheduler-kJPyy, main]
+    branches: [master]
     paths:
       - 'house-maintenance-app/**'
   workflow_dispatch:
@@ -56,7 +56,7 @@ jobs:
 
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
